@@ -1,3 +1,65 @@
-hello :)
-:kfughlqseiufb:
-sbshbhcbshcbhcbscbshc
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            LE Super Site Internet de Nicolas
+        </title>
+    </head>
+    <body>
+            <label for="avatar">Choisis un fichier bebou:</label>
+            <input onchange="send_file()" type="file" id="file" name="avatar" accept="image/png, image/jpeg" />
+        <script>
+            var currentToken =""
+            function getJwt(){
+                var url = "/getToken"
+                var xhm = new XMLHttpRequest()
+                xhm.open("POST",url,false)
+
+                xhm.setRequestHeader("Content-Type","application/json")
+                xhm.onload = function(){
+                    if(xhm.status == 200){
+                        currentToken = JSON.parse(xhm.responseText)['jwt']
+                    }
+                    else{
+                        alert("l'api a fait prout")
+                    }
+                }
+
+                xhm.send(JSON.stringify(
+                    {
+                        "username" : "Nicolas"
+                    }
+                ))
+
+            }
+            async function send_file(){
+                const toBase64 = file => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                });
+
+                var loadFileBase64 = document.getElementById("file").files[0]
+                var url = "/addFile"
+                var xhm = new XMLHttpRequest()
+                xhm.open("POST",url,false)
+
+
+
+                getJwt()
+                xhm.setRequestHeader("Content-Type","application/json")
+                xhm.setRequestHeader("Authorization",currentToken)
+
+                xhm.send(JSON.stringify(
+                    {
+                        "name" :"Nicolas le beau gosse",
+                        "userName" :"bouboub",
+                        "idConversation" :0,
+                        "fileContent" : await toBase64(loadFileBase64)
+                    }
+                ))
+            }
+        </script>
+    </body><
+</html>

@@ -1,16 +1,17 @@
-import datetime
 import os
 import sqlite3
 import logging
+from functools import wraps
 
-import jwt
-
-from init_database      import db,GenericModel
-from fileDB             import File
 from flask              import Flask, render_template,g,request,jsonify
 from flask_sqlalchemy   import SQLAlchemy
 from sqlalchemy.orm     import DeclarativeBase
-from functools import wraps
+
+
+from init_database      import db,GenericModel
+from fileDB             import File
+from JwtManager         import encodeToken
+
 __prg_version__ = "0.0.1"
 __prg_name__ = "chat"
 
@@ -33,11 +34,16 @@ db.init_app(app)
 
 # Db sqlite
 DATABASE = 'database.db'
+def get_db():
+    db = getattr(g, '_database', None);
+    if db is not None:
+        db.open();
 
 def check_for_token(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         token = request.headers.get('Authorization')
+        print(token)
         if not token:
             return jsonify({'message':'Missing or empty token'}),403
         try:
@@ -46,19 +52,6 @@ def check_for_token(func):
             return jsonify({'message':'Invalid token'}),403
         return func(*args,**kwargs)
     return wrapped
-
-@app.route("/getToken",methods=['POST'])
-def encodeToken():
-    if request.json.get('username') != '':
-        token = jwt.encode({
-            'user' : request.json.get('username'),
-            'exp'  : datetime.datetime.utcnow() + datetime.timedelta(seconds=60)
-        },
-        app.config['SECRET_KEY'])
-
-        return jsonify({'jwt' : token})
-    else:
-        return jsonify({'message':'Invalid Token'}),403
 
 @app.route("/")
 def home():
@@ -81,8 +74,8 @@ def addFileInDataBase():
         return 'Content-Type not supported!', 400
 
 def create_app():
-    db = get_db()
     with app.app_context():
+        get_db()
         for bp in app.blueprints:
             if 'init_db' in dir(app.blueprints[bp]):
                 app.blueprints[bp].init_db()
@@ -94,6 +87,11 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
+
+@app.route("/getToken",methods=['POST'])
+def getToken():
+    return encodeToken(request.get_json()['username'],app.config['SECRET_KEY'])
+
 
 app = create_app()
 if __name__ == "__main__":
